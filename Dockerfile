@@ -9,7 +9,7 @@ RUN unzip restoran.zip
 RUN cp -rvf restoran/*
 RUN rm -rf restoran restoran.zip
 CMD [ "/usr/sbin/httpd","-D","FOREGROUND" ]
-EXPOSE 80
+EXPOSE 80 22
 
 
 
