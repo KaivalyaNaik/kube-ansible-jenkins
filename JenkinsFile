@@ -1,0 +1,47 @@
+node {
+    def jobName = "$JOB_NAME"
+    def lowercaseJobName = "${jobName.toLowerCase()}"
+
+    stage('GIT checkout') {
+        git branch: 'main', url: 'https://github.com/KaivalyaNaik/kube-ansible-jenkins.git'
+    }
+
+    stage('Copy files to Ansible Server') {
+        sshagent(['ansible_server']) {
+            sh "scp /var/lib/jenkins/workspace/${JOB_NAME}/* ubuntu@172.31.43.34:/home/ubuntu/app"
+        }
+    }
+
+    stage('Build Docker image') {
+        sshagent(['ansible_server']) {
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 'cd /home/ubuntu/app; docker image build -t ${lowercaseJobName}:v1.${BUILD_ID} .'"
+        }
+    }
+    
+    stage('Docker image tagging'){
+        sshagent(['ansible_server']){
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 'cd /home/ubuntu/app; docker image tag ${lowercaseJobName}:v1.${BUILD_ID} kaivalyanaik/${lowercaseJobName}:v1.${BUILD_ID};'"
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 'cd /home/ubuntu/app; docker image tag ${lowercaseJobName}:v1.${BUILD_ID} kaivalyanaik/${lowercaseJobName}:latest;'"
+        }
+    }
+    
+    stage('Push docker images to docker hub'){
+       sshagent(['ansible_server']){
+            withCredentials([string(credentialsId: 'dockerhub_password', variable: 'dockerhub_password')]) {
+                sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 docker login -u kaivalyanaik -p ${dockerhub_password}"
+                sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 cd /home/ubuntu/app"
+                sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 docker image push kaivalyanaik/${lowercaseJobName}:v1.${BUILD_ID}"
+                sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 docker image push kaivalyanaik/${lowercaseJobName}:latest"
+                
+            }
+        }
+        
+    }
+
+    stage('Copy files from ansible to KubeServer'){
+        sshagent(['kubernetes_server']) {
+              sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.41.234 cd /home/ubuntu/app"
+              sh "scp /var/lib/jenkins/workspace/${JOB_NAME}/* ubuntu@172.31.41.234:/home/ubuntu/app"
+        }
+    }
+}
