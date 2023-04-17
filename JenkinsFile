@@ -44,4 +44,11 @@ node {
               sh "scp /var/lib/jenkins/workspace/${JOB_NAME}/* ubuntu@172.31.41.234:/home/ubuntu/app"
         }
     }
+
+    stage('Kubernetes Deployment Using Ansible'){
+        sshagent(['ansible_server']){
+              sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 cd /home/ubuntu/app"
+              sh  "ssh -o StrictHostKeyChecking=no ubuntu@172.31.43.34 ansible-playbook ansible.yaml"  
+        }
+    }
 }
