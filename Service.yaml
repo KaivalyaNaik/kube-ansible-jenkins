@@ -1,14 +1,14 @@
-apiVersion: apps/v1
-kind: Service
+kind: Service                             
+apiVersion: v1
 metadata:
-  name: devops-poc
+  name: devops
   labels:
-    app: devops-poc
+    app: devops
 spec:
   ports:
-    - port: 8080
-      targetPort: 80
+    - port: 8080                               
+      targetPort: 80                    
       nodePort: 31200
-  selector: 
-    app: devops
-  type: LoadBalancer
+  selector:
+    app: devops                    
+  type: LoadBalancer                   
